@@ -1,4 +1,4 @@
-# Rummy Score App 🎴
+# Rummy Score App
 
 A mobile app for tracking scores in Rummy card games. Built with React Native and Expo.
 
