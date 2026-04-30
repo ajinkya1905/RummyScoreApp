@@ -152,7 +152,7 @@ export default function GameSetupScreen({ navigation }) {
         Choose who's playing ({selectedPlayers.length} selected)
       </Text>
       <Text style={styles.dealerNote}>
-        � Select players in dealing order (first selected = first dealer)
+        Select players in dealing order (first selected = first dealer)
       </Text>
 
       {players.length === 0 ? (

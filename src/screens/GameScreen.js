@@ -187,7 +187,9 @@ export default function GameScreen({ navigation }) {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.historyTable}>
             <View style={styles.historyHeader}>
-              <Text style={styles.historyPlayerCell}>Player</Text>
+              <View style={styles.playerNameContainer}>
+                <Text style={styles.historyPlayerCell}>Player</Text>
+              </View>
               {currentGame.rounds.map((_, i) => (
                 <TouchableOpacity 
                   key={i} 
@@ -205,9 +207,13 @@ export default function GameScreen({ navigation }) {
               const isNextDealer = index === nextDealerIndex;
               return (
                 <View key={player.id} style={[styles.historyRow, player.isEliminated && styles.eliminatedRow]}>
-                  <Text style={[styles.historyPlayerCell, player.isEliminated && styles.eliminatedText]}>
-                    {isNextDealer ? '� ' : ''}{player.name} {player.isEliminated ? '❌' : ''}
-                  </Text>
+                  <View style={styles.playerNameContainer}>
+                    <Text style={[styles.historyPlayerCell, player.isEliminated && styles.eliminatedText]} numberOfLines={1}>
+                      {player.name}
+                    </Text>
+                    {isNextDealer && <View style={styles.dealerBadge}><Text style={styles.dealerBadgeText}>D</Text></View>}
+                    {player.isEliminated && <Text style={styles.eliminatedIcon}>❌</Text>}
+                  </View>
                   {player.scores.map((score, i) => (
                     <Text key={i} style={[styles.historyCell, score === 0 && styles.winnerScore]}>
                       {score}
@@ -400,11 +406,34 @@ const styles = StyleSheet.create({
   eliminatedRow: {
     opacity: 0.5,
   },
-  historyPlayerCell: {
+  playerNameContainer: {
     width: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyPlayerCell: {
     fontSize: 14,
     color: colors.text,
     fontWeight: '500',
+    flexShrink: 1,
+  },
+  dealerBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  dealerBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  eliminatedIcon: {
+    marginLeft: 4,
+    fontSize: 12,
   },
   historyCell: {
     width: 50,
