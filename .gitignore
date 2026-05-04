@@ -45,3 +45,4 @@ android/gradle.properties
 
 .idea/
 rummy-release-key.keystore.backup
+android/local.properties
