@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
+import BannerAd from '../components/BannerAd';
 
 export default function HistoryScreen({ navigation }) {
   const { games } = useGame();
@@ -91,8 +92,10 @@ export default function HistoryScreen({ navigation }) {
           renderItem={renderGameCard}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          ListFooterComponent={<View style={styles.listFooter} />}
         />
       )}
+      <BannerAd style={styles.bannerAd} />
     </SafeAreaView>
   );
 }
@@ -219,5 +222,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textLight,
     textAlign: 'center',
+  },
+  listFooter: {
+    height: spacing.xl,
+  },
+  bannerAd: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });

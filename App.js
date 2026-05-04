@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { GameProvider } from './src/context/GameContext';
+import { AdProvider } from './src/context/AdContext';
 import { colors } from './src/styles/theme';
 
 import HomeScreen from './src/screens/HomeScreen';
@@ -14,6 +15,7 @@ import GameScreen from './src/screens/GameScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import GameDetailScreen from './src/screens/GameDetailScreen';
 import ActiveGamesScreen from './src/screens/ActiveGamesScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,8 +38,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" backgroundColor={colors.background} />
-      <GameProvider>
-        <NavigationContainer>
+      <AdProvider>
+        <GameProvider>
+          <NavigationContainer>
           <Stack.Navigator
             initialRouteName="Home"
             screenOptions={screenOptions}
@@ -80,10 +83,16 @@ export default function App() {
               component={GameDetailScreen}
               options={{ title: 'Game Details' }}
             />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{ title: 'Settings' }}
+            />
           </Stack.Navigator>
         </NavigationContainer>
         <StatusBar style="dark" />
-      </GameProvider>
+        </GameProvider>
+      </AdProvider>
     </SafeAreaProvider>
   );
 }
