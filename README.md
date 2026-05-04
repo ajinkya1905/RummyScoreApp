@@ -66,6 +66,17 @@ cd android
 
 The APK will be at `android/app/build/outputs/apk/release/app-release.apk`
 
+### Release Build Configuration
+
+For signed release builds, create `android/local.properties` with your keystore passwords:
+
+```properties
+MYAPP_RELEASE_STORE_PASSWORD=your_password
+MYAPP_RELEASE_KEY_PASSWORD=your_password
+```
+
+This file is gitignored to keep passwords out of version control.
+
 ## Project Structure
 
 ```
