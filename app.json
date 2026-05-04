@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rummyscore.app"
     },
     "android": {
       "package": "com.rummyscore.app",
@@ -25,6 +26,23 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ],
+      [
+        "react-native-iap",
+        {
+          "android": {
+            "supportLibVersion": "6.1.0"
+          }
+        }
+      ]
+    ]
   }
 }

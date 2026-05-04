@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
+import { useAds } from '../context/AdContext';
 import Button from '../components/Button';
+import BannerAd from '../components/BannerAd';
 
 export default function HomeScreen({ navigation }) {
   const { activeGames, players, games, selectGame } = useGame();
+  const { adsRemoved } = useAds();
 
   const handleResumeGame = (gameId) => {
     selectGame(gameId);
@@ -16,6 +19,13 @@ export default function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => navigation.navigate('Settings')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.settingsIcon}>{adsRemoved ? '⚙️' : '✨'}</Text>
+        </TouchableOpacity>
         <Text style={styles.logo}>🃏</Text>
         <Text style={styles.title}>Rummy Score</Text>
         <Text style={styles.subtitle}>Track your game scores easily</Text>
@@ -87,6 +97,7 @@ export default function HomeScreen({ navigation }) {
         >
           <Text style={styles.historyText}>View Game History →</Text>
         </TouchableOpacity>
+        <BannerAd style={styles.bannerAd} />
       </View>
     </SafeAreaView>
   );
@@ -101,6 +112,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
+    position: 'relative',
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: spacing.lg,
+    right: spacing.lg,
+    padding: spacing.sm,
+    zIndex: 1,
+  },
+  settingsIcon: {
+    fontSize: 24,
   },
   logo: {
     fontSize: 64,
@@ -180,10 +202,14 @@ const styles = StyleSheet.create({
   },
   historyLink: {
     padding: spacing.md,
+    marginBottom: spacing.sm,
   },
   historyText: {
     fontSize: 16,
     color: colors.primary,
     fontWeight: '500',
+  },
+  bannerAd: {
+    marginTop: spacing.sm,
   },
 });

@@ -101,6 +101,8 @@ RummyScoreApp/
 - **React Navigation** for screen navigation
 - **React Context API** for state management
 - **AsyncStorage** for local data persistence
+- **Google AdMob** for banner ads
+- **react-native-iap** for in-app purchases
 
 ## Game Modes
 
@@ -110,6 +112,30 @@ RummyScoreApp/
 | Pool 101 | Players eliminated at 101 points |
 | Pool 201 | Players eliminated at 201 points |
 | Deals Rummy | Fixed number of deals |
+
+## Monetization
+
+The app uses a **Free + Ads + Remove Ads IAP** model:
+- Banner ads displayed on Home and History screens
+- One-time purchase to remove all ads
+
+### Debug Flags
+
+For easier local testing, edit `src/constants/ads.js`:
+
+```javascript
+// Set to true to hide all ads (simulates premium)
+export const DEBUG_FORCE_ADS_REMOVED = false;
+
+// Set to true to always show ads (ignore purchase status)
+export const DEBUG_FORCE_SHOW_ADS = false;
+```
+
+| Scenario | `DEBUG_FORCE_ADS_REMOVED` | `DEBUG_FORCE_SHOW_ADS` |
+|----------|---------------------------|------------------------|
+| Normal behavior | `false` | `false` |
+| Test ad-free experience | `true` | `false` |
+| Always show ads for testing | `false` | `true` |
 
 ## License
 
