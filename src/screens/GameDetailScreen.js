@@ -199,18 +199,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   historyHeaderCell: {
-    width: 50,
-    fontSize: 12,
+    width: 40,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textLight,
     textAlign: 'center',
   },
   playerColumn: {
-    width: 100,
+    width: 80,
     textAlign: 'left',
   },
   totalColumn: {
-    width: 60,
+    width: 48,
   },
   historyRow: {
     flexDirection: 'row',
@@ -228,14 +228,14 @@ const styles = StyleSheet.create({
     marginRight: spacing.xs,
   },
   playerName: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
     fontWeight: '500',
-    width: 70,
+    width: 56,
   },
   historyCell: {
-    width: 50,
-    fontSize: 14,
+    width: 40,
+    fontSize: 13,
     color: colors.text,
     textAlign: 'center',
   },

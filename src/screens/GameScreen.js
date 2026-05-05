@@ -199,7 +199,7 @@ export default function GameScreen({ navigation }) {
                   <Text style={[styles.historyHeaderCell, styles.editableRound]}>R{i + 1} ✎</Text>
                 </TouchableOpacity>
               ))}
-              <Text style={[styles.historyHeaderCell, styles.totalCell]}>Total</Text>
+              <Text style={[styles.historyHeaderCell, styles.totalHeaderCell]}>Total</Text>
             </View>
             {currentGame.players.map((player, index) => {
               // Dealer rotates: round 0 = player 0, round 1 = player 1, etc.
@@ -389,8 +389,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   historyHeaderCell: {
-    width: 60,
-    fontSize: 12,
+    width: 40,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textLight,
     textAlign: 'center',
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   playerNameContainer: {
-    width: 100,
+    width: 80,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -436,8 +436,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   historyCell: {
-    width: 50,
-    fontSize: 14,
+    width: 40,
+    fontSize: 13,
     color: colors.text,
     textAlign: 'center',
   },
@@ -449,8 +449,12 @@ const styles = StyleSheet.create({
     color: colors.textLight,
   },
   totalCell: {
+    width: 48,
     fontWeight: 'bold',
     color: colors.primary,
+  },
+  totalHeaderCell: {
+    width: 48,
   },
   footer: {
     padding: spacing.lg,
