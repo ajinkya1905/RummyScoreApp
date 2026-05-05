@@ -14,10 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rummyscore.app"
+      "bundleIdentifier": "com.ajinkya.rummyscore"
     },
     "android": {
-      "package": "com.rummyscore.app",
+      "package": "com.ajinkya.rummyscore",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

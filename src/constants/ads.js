@@ -47,7 +47,7 @@ export const AD_UNIT_IDS = {
 export const IAP_PRODUCTS = {
   REMOVE_ADS: Platform.select({
     android: 'remove_ads',
-    ios: 'com.rummyscore.app.removeads',
+    ios: 'com.ajinkya.rummyscore.removeads',
   }),
 };
 

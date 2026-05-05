@@ -96,9 +96,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.rummyscore.app'
+    namespace 'com.ajinkya.rummyscore'
     defaultConfig {
-        applicationId 'com.rummyscore.app'
+        applicationId 'com.ajinkya.rummyscore'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
