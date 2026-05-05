@@ -86,17 +86,28 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate('Players')}
             style={styles.secondaryButton}
           />
+          <Button
+            title="View Game History"
+            variant="secondary"
+            onPress={() => navigation.navigate('History')}
+            style={styles.secondaryButton}
+          />
         </View>
+
+        {/* Settings Link */}
+        <TouchableOpacity
+          style={styles.settingsLink}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <Text style={styles.settingsLinkText}>
+            {adsRemoved ? '⚙️ Settings' : '✨ Go Ad-Free'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
+      {/* Banner Ad at bottom, outside scrollable content */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.historyLink}
-          activeOpacity={0.7}
-          onPress={() => navigation.navigate('History')}
-        >
-          <Text style={styles.historyText}>View Game History →</Text>
-        </TouchableOpacity>
         <BannerAd style={styles.bannerAd} />
       </View>
     </SafeAreaView>
@@ -194,22 +205,24 @@ const styles = StyleSheet.create({
   mainButton: {
     marginBottom: spacing.md,
   },
-  secondaryButton: {},
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+  secondaryButton: {
+    marginBottom: spacing.md,
+  },
+  settingsLink: {
     alignItems: 'center',
+    paddingVertical: spacing.lg,
   },
-  historyLink: {
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  historyText: {
+  settingsLinkText: {
     fontSize: 16,
     color: colors.primary,
     fontWeight: '500',
   },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    alignItems: 'center',
+  },
   bannerAd: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
 });
