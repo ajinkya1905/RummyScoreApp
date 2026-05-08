@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
@@ -16,11 +17,14 @@ import Button from '../components/Button';
 import ScoreInput from '../components/ScoreInput';
 
 export default function GameScreen({ navigation }) {
-  const { currentGame, addRound, editRound, endGame, cancelGame } = useGame();
+  const { currentGame, addRound, editRound, endGame, cancelGame, reentryPlayer } = useGame();
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [roundScores, setRoundScores] = useState({});
   const [editingRoundIndex, setEditingRoundIndex] = useState(null);
+  const [showReentryModal, setShowReentryModal] = useState(false);
+  const [reentryPlayerData, setReentryPlayerData] = useState(null);
+  const [reentryScore, setReentryScore] = useState('');
 
   if (!currentGame) {
     return (
@@ -40,27 +44,82 @@ export default function GameScreen({ navigation }) {
   const activePlayers = currentGame.players.filter(p => !p.isEliminated);
   const sortedPlayers = [...currentGame.players].sort((a, b) => a.totalScore - b.totalScore);
 
-  const checkGameEnd = () => {
+  // Get drop warning status for pool games
+  const getDropWarningStatus = (player) => {
+    const mode = currentGame.mode;
+    if (mode.id !== 'pool101' && mode.id !== 'pool201') return null;
+    if (player.isEliminated) return null;
+    
+    const poolLimit = mode.id === 'pool101' ? 101 : 201;
+    const dropPoints = currentGame.dropPoints?.drop || 20;
+    const middleDropPoints = currentGame.dropPoints?.middleDrop || 40;
+    
+    // Cannot drop at all (would be eliminated with a drop)
+    if (player.totalScore + dropPoints >= poolLimit) {
+      return 'cannotDrop';
+    }
+    // Can only drop once (middle drop would eliminate)
+    if (player.totalScore + middleDropPoints >= poolLimit) {
+      return 'canOnlyDropOnce';
+    }
+    return null;
+  };
+
+  // Check game end with new scores (before state updates)
+  const checkGameEnd = (newScores) => {
     const mode = currentGame.mode;
     
     if (mode.id === 'pool101' || mode.id === 'pool201') {
-      const stillActive = currentGame.players.filter(p => !p.isEliminated);
+      const poolLimit = mode.id === 'pool101' ? 101 : 201;
+      
+      // Calculate who would still be active after this round
+      const playersAfterRound = currentGame.players.map(p => {
+        const roundScore = newScores[p.id] || 0;
+        const newTotal = p.totalScore + roundScore;
+        return {
+          ...p,
+          totalScore: newTotal,
+          isEliminated: p.isEliminated || newTotal >= poolLimit,
+        };
+      });
+      
+      const stillActive = playersAfterRound.filter(p => !p.isEliminated);
       if (stillActive.length === 1) {
         return stillActive[0];
+      }
+      // Also end if all remaining players would be eliminated (last one standing from before)
+      if (stillActive.length === 0) {
+        const wasActive = currentGame.players.filter(p => !p.isEliminated);
+        if (wasActive.length > 0) {
+          // Return the one with lowest score among those who were active
+          return wasActive.sort((a, b) => (a.totalScore + (newScores[a.id] || 0)) - (b.totalScore + (newScores[b.id] || 0)))[0];
+        }
       }
     }
     
     if (mode.id === 'points') {
-      const reachedTarget = currentGame.players.find(
+      const playersAfterRound = currentGame.players.map(p => ({
+        ...p,
+        totalScore: p.totalScore + (newScores[p.id] || 0),
+      }));
+      
+      const reachedTarget = playersAfterRound.find(
         p => p.totalScore >= currentGame.targetScore
       );
       if (reachedTarget) {
-        return sortedPlayers[0]; // Lowest score wins in points rummy
+        // Lowest score wins
+        return playersAfterRound.sort((a, b) => a.totalScore - b.totalScore)[0];
       }
     }
     
-    if (mode.id === 'deals' && currentGame.rounds.length >= currentGame.targetScore) {
-      return sortedPlayers[0];
+    // For deals: check if this will be the last round (current rounds + 1 new round)
+    if (mode.id === 'deals' && (currentGame.rounds.length + 1) >= currentGame.targetScore) {
+      const playersAfterRound = currentGame.players.map(p => ({
+        ...p,
+        totalScore: p.totalScore + (newScores[p.id] || 0),
+      }));
+      // Lowest score wins in deals
+      return playersAfterRound.sort((a, b) => a.totalScore - b.totalScore)[0];
     }
     
     return null;
@@ -126,14 +185,16 @@ export default function GameScreen({ navigation }) {
     }
     handleCloseScoreModal();
     
-    // Check for game end after a short delay (only for new rounds)
+    // Check for game end immediately (only for new rounds)
     if (editingRoundIndex === null) {
-      setTimeout(() => {
-        const winner = checkGameEnd();
-        if (winner) {
+      const winner = checkGameEnd(scores);
+      if (winner) {
+        // Calculate the winner's final score
+        const finalScore = winner.totalScore + (scores[winner.id] || 0);
+        setTimeout(() => {
           Alert.alert(
             '🏆 Game Over!',
-            `${winner.name} wins with ${winner.totalScore} points!`,
+            `${winner.name} wins with ${finalScore} points!`,
             [
               {
                 text: 'End Game',
@@ -144,8 +205,8 @@ export default function GameScreen({ navigation }) {
               },
             ]
           );
-        }
-      }, 100);
+        }, 100);
+      }
     }
   };
 
@@ -164,6 +225,45 @@ export default function GameScreen({ navigation }) {
     cancelGame();
     navigation.replace('Home');
   };
+
+  // Get players eligible for re-entry (eliminated in the last round, haven't used re-entry yet)
+  const getReentryEligiblePlayers = () => {
+    const mode = currentGame.mode;
+    // Allow re-entry for any pool rummy mode (pool101, pool201, or custom pool games)
+    if (!mode.id.startsWith('pool')) return [];
+    
+    const currentRound = currentGame.rounds.length;
+    return currentGame.players.filter(p => 
+      p.isEliminated && 
+      !p.hasUsedReentry && 
+      p.eliminatedAtRound === currentRound
+    );
+  };
+
+  const handleOpenReentry = (player) => {
+    // Default score is max active player score + 1
+    const maxActiveScore = Math.max(
+      ...currentGame.players.filter(p => !p.isEliminated).map(p => p.totalScore),
+      0
+    );
+    setReentryPlayerData(player);
+    setReentryScore(String(maxActiveScore + 1));
+    setShowReentryModal(true);
+  };
+
+  const handleConfirmReentry = () => {
+    const score = parseInt(reentryScore);
+    if (isNaN(score) || score < 0) {
+      Alert.alert('Error', 'Please enter a valid score');
+      return;
+    }
+    reentryPlayer(reentryPlayerData.id, score);
+    setShowReentryModal(false);
+    setReentryPlayerData(null);
+    setReentryScore('');
+  };
+
+  const reentryEligiblePlayers = getReentryEligiblePlayers();
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -184,49 +284,125 @@ export default function GameScreen({ navigation }) {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Scoreboard</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.historyTable}>
-            <View style={styles.historyHeader}>
-              <View style={styles.playerNameContainer}>
-                <Text style={styles.historyPlayerCell}>Player</Text>
-              </View>
-              {currentGame.rounds.map((_, i) => (
-                <TouchableOpacity 
-                  key={i} 
-                  onPress={() => handleOpenScoreModal(i)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.historyHeaderCell, styles.editableRound]}>R{i + 1} ✎</Text>
-                </TouchableOpacity>
-              ))}
-              <Text style={[styles.historyHeaderCell, styles.totalHeaderCell]}>Total</Text>
+        
+        {/* Re-entry notification for eligible players */}
+        {reentryEligiblePlayers.length > 0 && (
+          <View style={styles.reentryNotice}>
+            <Text style={styles.reentryNoticeText}>Players eligible for re-entry:</Text>
+            {reentryEligiblePlayers.map(player => (
+              <TouchableOpacity 
+                key={player.id} 
+                style={styles.reentryButton}
+                onPress={() => handleOpenReentry(player)}
+              >
+                <Text style={styles.reentryButtonText}>↩️ Re-enter {player.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Vertical table: Players as columns, Rounds as rows */}
+        <View style={styles.verticalTable}>
+          {/* Header row with player names */}
+          <View style={styles.tableHeaderRow}>
+            <View style={styles.roundLabelCell}>
+              <Text style={styles.roundLabelText}>Round</Text>
             </View>
             {currentGame.players.map((player, index) => {
-              // Dealer rotates: round 0 = player 0, round 1 = player 1, etc.
-              const nextDealerIndex = currentGame.rounds.length % currentGame.players.length;
-              const isNextDealer = index === nextDealerIndex;
+              const allPlayers = currentGame.players;
+              const basePosition = currentGame.rounds.length % allPlayers.length;
+              let dealerIndex = basePosition;
+              for (let i = 0; i < allPlayers.length; i++) {
+                const checkIndex = (basePosition + i) % allPlayers.length;
+                if (!allPlayers[checkIndex].isEliminated) {
+                  dealerIndex = checkIndex;
+                  break;
+                }
+              }
+              const isNextDealer = index === dealerIndex;
+              const dropWarning = getDropWarningStatus(player);
+              
               return (
-                <View key={player.id} style={[styles.historyRow, player.isEliminated && styles.eliminatedRow]}>
-                  <View style={styles.playerNameContainer}>
-                    <Text style={[styles.historyPlayerCell, player.isEliminated && styles.eliminatedText]} numberOfLines={1}>
-                      {player.name}
-                    </Text>
+                <View 
+                  key={player.id} 
+                  style={[
+                    styles.playerColumnHeader,
+                    player.isEliminated && styles.eliminatedColumn,
+                    dropWarning === 'cannotDrop' && styles.cannotDropColumn,
+                    dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceColumn,
+                  ]}
+                >
+                  <Text style={[styles.playerColumnName, player.isEliminated && styles.eliminatedText]} numberOfLines={1}>
+                    {player.name}
+                  </Text>
+                  <View style={styles.playerBadges}>
                     {isNextDealer && <View style={styles.dealerBadge}><Text style={styles.dealerBadgeText}>D</Text></View>}
                     {player.isEliminated && <Text style={styles.eliminatedIcon}>❌</Text>}
+                    {player.hasUsedReentry && <Text style={styles.reentryIcon}>↩️</Text>}
                   </View>
-                  {player.scores.map((score, i) => (
-                    <Text key={i} style={[styles.historyCell, score === 0 && styles.winnerScore]}>
-                      {score}
-                    </Text>
-                  ))}
-                  <Text style={[styles.historyCell, styles.totalCell, player.isEliminated && styles.eliminatedText]}>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Round rows */}
+          {currentGame.rounds.map((round, roundIndex) => (
+            <TouchableOpacity 
+              key={roundIndex}
+              style={styles.tableRow}
+              onPress={() => handleOpenScoreModal(roundIndex)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.roundLabelCell}>
+                <Text style={styles.roundNumber}>R{roundIndex + 1} ✎</Text>
+              </View>
+              {currentGame.players.map((player) => {
+                const score = player.scores[roundIndex];
+                const dropWarning = getDropWarningStatus(player);
+                return (
+                  <View key={player.id} style={[
+                    styles.scoreCell, 
+                    player.isEliminated && styles.eliminatedColumn,
+                    dropWarning === 'cannotDrop' && styles.cannotDropColumn,
+                    dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceColumn,
+                  ]}>
+                    {score === 0 ? (
+                      <View style={styles.winnerBadge}>
+                        <Text style={styles.winnerBadgeText}>R</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.scoreCellText, player.isEliminated && styles.eliminatedText]}>
+                        {score}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </TouchableOpacity>
+          ))}
+
+          {/* Total row */}
+          <View style={[styles.tableRow, styles.totalRow]}>
+            <View style={styles.roundLabelCell}>
+              <Text style={styles.totalLabel}>Total</Text>
+            </View>
+            {currentGame.players.map((player) => {
+              const dropWarning = getDropWarningStatus(player);
+              return (
+                <View key={player.id} style={[
+                  styles.scoreCell, 
+                  player.isEliminated && styles.eliminatedColumn,
+                  dropWarning === 'cannotDrop' && styles.cannotDropColumn,
+                  dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceColumn,
+                ]}>
+                  <Text style={[styles.totalScoreText, player.isEliminated && styles.eliminatedText]}>
                     {player.totalScore}
                   </Text>
                 </View>
               );
             })}
           </View>
-        </ScrollView>
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -235,6 +411,43 @@ export default function GameScreen({ navigation }) {
           onPress={() => handleOpenScoreModal()}
         />
       </View>
+
+      {/* Re-entry Modal */}
+      <Modal
+        visible={showReentryModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowReentryModal(false)}
+      >
+        <View style={styles.endModalOverlay}>
+          <View style={styles.endModalContent}>
+            <Text style={styles.endModalTitle}>Re-entry</Text>
+            <Text style={styles.endModalText}>
+              Re-enter {reentryPlayerData?.name} with score:
+            </Text>
+            <TextInput
+              style={styles.reentryInput}
+              keyboardType="numeric"
+              value={reentryScore}
+              onChangeText={setReentryScore}
+              placeholder="Enter score"
+            />
+            <View style={styles.endModalButtons}>
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={() => setShowReentryModal(false)}
+                style={styles.endModalButton}
+              />
+              <Button
+                title="Confirm"
+                onPress={handleConfirmReentry}
+                style={styles.endModalButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showScoreModal}
@@ -376,85 +589,167 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginTop: spacing.sm,
   },
-  historyTable: {
+  // Vertical table styles
+  verticalTable: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    padding: spacing.sm,
+    overflow: 'hidden',
   },
-  historyHeader: {
+  tableHeaderRow: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
+    borderBottomWidth: 2,
     borderBottomColor: colors.border,
     paddingBottom: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
-  historyHeaderCell: {
-    width: 40,
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textLight,
-    textAlign: 'center',
-  },
-  editableRound: {
-    color: colors.primary,
-  },
-  historyRow: {
+  tableRow: {
     flexDirection: 'row',
     paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  totalRow: {
+    borderBottomWidth: 0,
+    backgroundColor: colors.background,
+    marginTop: spacing.xs,
+    borderRadius: borderRadius.md,
+  },
+  roundLabelCell: {
+    width: 50,
+    justifyContent: 'center',
+    paddingRight: spacing.xs,
+  },
+  roundLabelText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textLight,
+  },
+  roundNumber: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  totalLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  playerColumnHeader: {
+    flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 2,
+    minWidth: 45,
   },
-  eliminatedRow: {
-    opacity: 0.5,
+  playerColumnName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
   },
-  playerNameContainer: {
-    width: 80,
+  playerBadges: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 2,
   },
-  historyPlayerCell: {
+  scoreCell: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 45,
+  },
+  scoreCellText: {
     fontSize: 14,
     color: colors.text,
-    fontWeight: '500',
-    flexShrink: 1,
+    textAlign: 'center',
+  },
+  totalScoreText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  eliminatedColumn: {
+    opacity: 0.5,
+  },
+  cannotDropColumn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  canOnlyDropOnceColumn: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
   },
   dealerBadge: {
     backgroundColor: colors.primary,
-    borderRadius: 10,
-    width: 18,
-    height: 18,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 4,
+    marginHorizontal: 1,
   },
   dealerBadgeText: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
   },
   eliminatedIcon: {
-    marginLeft: 4,
+    fontSize: 10,
+    marginHorizontal: 1,
+  },
+  reentryIcon: {
+    fontSize: 10,
+    marginHorizontal: 1,
+  },
+  winnerBadge: {
+    backgroundColor: colors.success,
+    borderRadius: 10,
+    width: 22,
+    height: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  winnerBadgeText: {
+    color: '#fff',
     fontSize: 12,
-  },
-  historyCell: {
-    width: 40,
-    fontSize: 13,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  winnerScore: {
-    color: colors.success,
     fontWeight: 'bold',
   },
   eliminatedText: {
     color: colors.textLight,
   },
-  totalCell: {
-    width: 48,
-    fontWeight: 'bold',
-    color: colors.primary,
+  // Re-entry styles
+  reentryNotice: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
   },
-  totalHeaderCell: {
-    width: 48,
+  reentryNoticeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  reentryButton: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  reentryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  reentryInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   footer: {
     padding: spacing.lg,

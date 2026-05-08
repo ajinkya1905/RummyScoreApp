@@ -75,6 +75,8 @@ function gameReducer(state, action) {
           scores: [],
           totalScore: 0,
           isEliminated: false,
+          hasUsedReentry: false,
+          eliminatedAtRound: null,
         })),
         rounds: [],
         startedAt: new Date().toISOString(),
@@ -106,12 +108,15 @@ function gameReducer(state, action) {
         const newTotal = player.totalScore + roundScore;
         const poolLimit = gameToUpdate.mode.id === 'pool101' ? 101 : 
                          gameToUpdate.mode.id === 'pool201' ? 201 : Infinity;
+        const wasEliminated = player.isEliminated;
+        const nowEliminated = newTotal >= poolLimit;
         
         return {
           ...player,
           scores: [...player.scores, roundScore],
           totalScore: newTotal,
-          isEliminated: newTotal >= poolLimit,
+          isEliminated: nowEliminated,
+          eliminatedAtRound: (!wasEliminated && nowEliminated) ? roundNumber : player.eliminatedAtRound,
         };
       });
       
@@ -196,6 +201,38 @@ function gameReducer(state, action) {
         ),
       };
     
+    case 'REENTRY_PLAYER':
+      const gameForReentry = state.activeGames.find(g => g.id === state.selectedGameId);
+      if (!gameForReentry) return state;
+      
+      const reentryPlayerId = action.payload.playerId;
+      const reentryScore = action.payload.score;
+      
+      const playersAfterReentry = gameForReentry.players.map(player => {
+        if (player.id === reentryPlayerId) {
+          return {
+            ...player,
+            totalScore: reentryScore,
+            isEliminated: false,
+            hasUsedReentry: true,
+            eliminatedAtRound: null,
+          };
+        }
+        return player;
+      });
+      
+      const gameAfterReentry = {
+        ...gameForReentry,
+        players: playersAfterReentry,
+      };
+      
+      return {
+        ...state,
+        activeGames: state.activeGames.map(g => 
+          g.id === state.selectedGameId ? gameAfterReentry : g
+        ),
+      };
+    
     default:
       return state;
   }
@@ -248,6 +285,7 @@ export function GameProvider({ children }) {
     editRound: (roundIndex, scores) => dispatch({ type: 'EDIT_ROUND', payload: { roundIndex, scores } }),
     endGame: (winner) => dispatch({ type: 'END_GAME', payload: { winner } }),
     cancelGame: () => dispatch({ type: 'CANCEL_GAME' }),
+    reentryPlayer: (playerId, score) => dispatch({ type: 'REENTRY_PLAYER', payload: { playerId, score } }),
   };
 
   return (
