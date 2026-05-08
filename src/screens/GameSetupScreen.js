@@ -28,11 +28,16 @@ export default function GameSetupScreen({ navigation }) {
   const [fullPoints, setFullPoints] = useState('80');
 
   const togglePlayer = (player) => {
-    setSelectedPlayers((prev) =>
-      prev.find((p) => p.id === player.id)
-        ? prev.filter((p) => p.id !== player.id)
-        : [...prev, player]
-    );
+    setSelectedPlayers((prev) => {
+      if (prev.find((p) => p.id === player.id)) {
+        return prev.filter((p) => p.id !== player.id);
+      }
+      if (prev.length >= 7) {
+        Alert.alert('Maximum Players', 'You can select up to 7 players per game');
+        return prev;
+      }
+      return [...prev, player];
+    });
   };
 
   const handleStartGame = () => {
@@ -149,7 +154,7 @@ export default function GameSetupScreen({ navigation }) {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Select Players</Text>
       <Text style={styles.stepDescription}>
-        Choose who's playing ({selectedPlayers.length} selected)
+        Choose who's playing ({selectedPlayers.length}/7 selected)
       </Text>
       <Text style={styles.dealerNote}>
         Select players in dealing order (first selected = first dealer)
