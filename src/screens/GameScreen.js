@@ -301,106 +301,124 @@ export default function GameScreen({ navigation }) {
           </View>
         )}
 
-        {/* Vertical table: Players as columns, Rounds as rows */}
-        <View style={styles.verticalTable}>
-          {/* Header row with player names */}
-          <View style={styles.tableHeaderRow}>
-            <View style={styles.roundLabelCell}>
-              <Text style={styles.roundLabelText}>Round</Text>
-            </View>
-            {currentGame.players.map((player, index) => {
-              const allPlayers = currentGame.players;
-              const basePosition = currentGame.rounds.length % allPlayers.length;
-              let dealerIndex = basePosition;
-              for (let i = 0; i < allPlayers.length; i++) {
-                const checkIndex = (basePosition + i) % allPlayers.length;
-                if (!allPlayers[checkIndex].isEliminated) {
-                  dealerIndex = checkIndex;
-                  break;
-                }
-              }
-              const isNextDealer = index === dealerIndex;
-              const dropWarning = getDropWarningStatus(player);
-              
-              return (
-                <View 
-                  key={player.id} 
-                  style={[
-                    styles.playerColumnHeader,
-                    player.isEliminated && styles.eliminatedColumn,
-                    dropWarning === 'cannotDrop' && styles.cannotDropColumn,
-                    dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceColumn,
-                  ]}
-                >
-                  <Text style={[styles.playerColumnName, player.isEliminated && styles.eliminatedText]} numberOfLines={1}>
-                    {player.name}
-                  </Text>
-                  <View style={styles.playerBadges}>
-                    {isNextDealer && <View style={styles.dealerBadge}><Text style={styles.dealerBadgeText}>D</Text></View>}
-                    {player.isEliminated && <Text style={styles.eliminatedIcon}>❌</Text>}
-                    {player.hasUsedReentry && <Text style={styles.reentryIcon}>↩️</Text>}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-
-          {/* Round rows */}
-          {currentGame.rounds.map((round, roundIndex) => (
-            <TouchableOpacity 
-              key={roundIndex}
-              style={styles.tableRow}
-              onPress={() => handleOpenScoreModal(roundIndex)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.roundLabelCell}>
-                <Text style={styles.roundNumber}>R{roundIndex + 1} ✎</Text>
+        {/* Horizontal table: Players as rows, Rounds as columns */}
+        {/* Frozen player names column with horizontally scrollable round columns */}
+        <View style={styles.horizontalTable}>
+          <View style={styles.tableContainer}>
+            {/* Fixed Player Names Column */}
+            <View style={styles.frozenColumn}>
+              {/* Header cell */}
+              <View style={styles.frozenHeaderCell}>
+                <Text style={styles.playerLabelText}>Player</Text>
               </View>
-              {currentGame.players.map((player) => {
-                const score = player.scores[roundIndex];
+              {/* Player name cells */}
+              {currentGame.players.map((player, index) => {
+                const allPlayers = currentGame.players;
+                const basePosition = currentGame.rounds.length % allPlayers.length;
+                let dealerIndex = basePosition;
+                for (let i = 0; i < allPlayers.length; i++) {
+                  const checkIndex = (basePosition + i) % allPlayers.length;
+                  if (!allPlayers[checkIndex].isEliminated) {
+                    dealerIndex = checkIndex;
+                    break;
+                  }
+                }
+                const isNextDealer = index === dealerIndex;
                 const dropWarning = getDropWarningStatus(player);
+                
                 return (
-                  <View key={player.id} style={[
-                    styles.scoreCell, 
-                    player.isEliminated && styles.eliminatedColumn,
-                    dropWarning === 'cannotDrop' && styles.cannotDropColumn,
-                    dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceColumn,
-                  ]}>
-                    {score === 0 ? (
-                      <View style={styles.winnerBadge}>
-                        <Text style={styles.winnerBadgeText}>R</Text>
-                      </View>
-                    ) : (
-                      <Text style={[styles.scoreCellText, player.isEliminated && styles.eliminatedText]}>
-                        {score}
-                      </Text>
-                    )}
+                  <View 
+                    key={player.id} 
+                    style={[
+                      styles.frozenPlayerCell,
+                      player.isEliminated && styles.eliminatedRow,
+                      dropWarning === 'cannotDrop' && styles.cannotDropRow,
+                      dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceRow,
+                    ]}
+                  >
+                    <Text style={[styles.playerRowName, player.isEliminated && styles.eliminatedText]} numberOfLines={1}>
+                      {player.name}
+                    </Text>
+                    <View style={styles.playerBadges}>
+                      {isNextDealer && <View style={styles.dealerBadge}><Text style={styles.dealerBadgeText}>D</Text></View>}
+                      {player.isEliminated && <Text style={styles.eliminatedIcon}>❌</Text>}
+                      {player.hasUsedReentry && <Text style={styles.reentryIcon}>↩️</Text>}
+                    </View>
                   </View>
                 );
               })}
-            </TouchableOpacity>
-          ))}
-
-          {/* Total row */}
-          <View style={[styles.tableRow, styles.totalRow]}>
-            <View style={styles.roundLabelCell}>
-              <Text style={styles.totalLabel}>Total</Text>
             </View>
-            {currentGame.players.map((player) => {
-              const dropWarning = getDropWarningStatus(player);
-              return (
-                <View key={player.id} style={[
-                  styles.scoreCell, 
-                  player.isEliminated && styles.eliminatedColumn,
-                  dropWarning === 'cannotDrop' && styles.cannotDropColumn,
-                  dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceColumn,
-                ]}>
-                  <Text style={[styles.totalScoreText, player.isEliminated && styles.eliminatedText]}>
-                    {player.totalScore}
-                  </Text>
+
+            {/* Scrollable Round Columns */}
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={true}
+              style={styles.scrollableColumns}
+              contentContainerStyle={styles.scrollableColumnsContent}
+            >
+              <View>
+                {/* Header row with round numbers and Total */}
+                <View style={styles.roundHeaderRow}>
+                  {currentGame.rounds.map((round, roundIndex) => (
+                    <TouchableOpacity
+                      key={roundIndex}
+                      style={styles.roundHeaderCell}
+                      onPress={() => handleOpenScoreModal(roundIndex)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.roundHeaderText}>R{roundIndex + 1}</Text>
+                      <Text style={styles.editIcon}>✎</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <View style={[styles.roundHeaderCell, styles.totalHeaderCell]}>
+                    <Text style={styles.totalHeaderText}>Total</Text>
+                  </View>
                 </View>
-              );
-            })}
+
+                {/* Player score rows */}
+                {currentGame.players.map((player) => {
+                  const dropWarning = getDropWarningStatus(player);
+                  return (
+                    <View 
+                      key={player.id} 
+                      style={[
+                        styles.playerScoreRow,
+                        player.isEliminated && styles.eliminatedRow,
+                        dropWarning === 'cannotDrop' && styles.cannotDropRow,
+                        dropWarning === 'canOnlyDropOnce' && styles.canOnlyDropOnceRow,
+                      ]}
+                    >
+                      {currentGame.rounds.map((round, roundIndex) => {
+                        const score = player.scores[roundIndex];
+                        return (
+                          <TouchableOpacity
+                            key={roundIndex}
+                            style={styles.scoreCell}
+                            onPress={() => handleOpenScoreModal(roundIndex)}
+                            activeOpacity={0.7}
+                          >
+                            {score === 0 ? (
+                              <View style={styles.winnerBadge}>
+                                <Text style={styles.winnerBadgeText}>R</Text>
+                              </View>
+                            ) : (
+                              <Text style={[styles.scoreCellText, player.isEliminated && styles.eliminatedText]}>
+                                {score}
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                      <View style={[styles.scoreCell, styles.totalCell]}>
+                        <Text style={[styles.totalScoreText, player.isEliminated && styles.eliminatedText]}>
+                          {player.totalScore}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
           </View>
         </View>
       </ScrollView>
@@ -589,74 +607,99 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     marginTop: spacing.sm,
   },
-  // Vertical table styles
-  verticalTable: {
+  // Horizontal table styles (players as rows, rounds as columns)
+  horizontalTable: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.sm,
     overflow: 'hidden',
   },
-  tableHeaderRow: {
+  tableContainer: {
     flexDirection: 'row',
+  },
+  frozenColumn: {
+    backgroundColor: colors.surface,
+    borderRightWidth: 2,
+    borderRightColor: colors.border,
+    zIndex: 1,
+  },
+  frozenHeaderCell: {
+    height: 44,
+    width: 100,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
     borderBottomWidth: 2,
     borderBottomColor: colors.border,
-    paddingBottom: spacing.sm,
-    marginBottom: spacing.xs,
   },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  totalRow: {
-    borderBottomWidth: 0,
-    backgroundColor: colors.background,
-    marginTop: spacing.xs,
-    borderRadius: borderRadius.md,
-  },
-  roundLabelCell: {
-    width: 50,
-    justifyContent: 'center',
-    paddingRight: spacing.xs,
-  },
-  roundLabelText: {
+  playerLabelText: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.textLight,
   },
-  roundNumber: {
+  frozenPlayerCell: {
+    height: 44,
+    width: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  playerRowName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    flex: 1,
+  },
+  scrollableColumns: {
+    flex: 1,
+  },
+  scrollableColumnsContent: {
+    paddingRight: spacing.sm,
+  },
+  roundHeaderRow: {
+    flexDirection: 'row',
+    height: 44,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.border,
+  },
+  roundHeaderCell: {
+    width: 55,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xs,
+  },
+  roundHeaderText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     color: colors.primary,
   },
-  totalLabel: {
+  editIcon: {
+    fontSize: 10,
+    color: colors.textLight,
+  },
+  totalHeaderCell: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+  },
+  totalHeaderText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: colors.text,
   },
-  playerColumnHeader: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 2,
-    minWidth: 45,
-  },
-  playerColumnName: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  playerBadges: {
+  playerScoreRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
+    height: 44,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   scoreCell: {
-    flex: 1,
+    width: 55,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 45,
+  },
+  totalCell: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
   },
   scoreCellText: {
     fontSize: 14,
@@ -668,14 +711,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.primary,
   },
-  eliminatedColumn: {
+  eliminatedRow: {
     opacity: 0.5,
   },
-  cannotDropColumn: {
+  cannotDropRow: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
   },
-  canOnlyDropOnceColumn: {
+  canOnlyDropOnceRow: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  playerBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   dealerBadge: {
     backgroundColor: colors.primary,
@@ -684,7 +731,7 @@ const styles = StyleSheet.create({
     height: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 1,
+    marginLeft: 2,
   },
   dealerBadgeText: {
     color: '#fff',
@@ -693,11 +740,11 @@ const styles = StyleSheet.create({
   },
   eliminatedIcon: {
     fontSize: 10,
-    marginHorizontal: 1,
+    marginLeft: 2,
   },
   reentryIcon: {
     fontSize: 10,
-    marginHorizontal: 1,
+    marginLeft: 2,
   },
   winnerBadge: {
     backgroundColor: colors.success,
