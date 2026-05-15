@@ -9,10 +9,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
+import { useAds } from '../context/AdContext';
 import BannerAd from '../components/BannerAd';
 
 export default function HistoryScreen({ navigation }) {
   const { games } = useGame();
+  const { adsRemoved } = useAds();
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -92,7 +94,7 @@ export default function HistoryScreen({ navigation }) {
           renderItem={renderGameCard}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={<View style={styles.listFooter} />}
+          ListFooterComponent={<View style={adsRemoved ? styles.listFooter : styles.listFooterWithAd} />}
         />
       )}
       <BannerAd style={styles.bannerAd} />
@@ -225,6 +227,9 @@ const styles = StyleSheet.create({
   },
   listFooter: {
     height: spacing.xl,
+  },
+  listFooterWithAd: {
+    height: 70, // Space for banner ad
   },
   bannerAd: {
     position: 'absolute',

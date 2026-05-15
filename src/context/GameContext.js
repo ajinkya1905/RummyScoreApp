@@ -107,7 +107,8 @@ function gameReducer(state, action) {
         const roundScore = action.payload.scores[player.id] || 0;
         const newTotal = player.totalScore + roundScore;
         const poolLimit = gameToUpdate.mode.id === 'pool101' ? 101 : 
-                         gameToUpdate.mode.id === 'pool201' ? 201 : Infinity;
+                         gameToUpdate.mode.id === 'pool201' ? 201 : 
+                         gameToUpdate.mode.id === 'points' ? gameToUpdate.targetScore : Infinity;
         const wasEliminated = player.isEliminated;
         const nowEliminated = newTotal >= poolLimit;
         
@@ -178,7 +179,8 @@ function gameReducer(state, action) {
         const allScores = updatedRounds.map(round => round.scores[player.id] || 0);
         const newTotal = allScores.reduce((sum, s) => sum + s, 0);
         const poolLimit = gameToEdit.mode.id === 'pool101' ? 101 : 
-                         gameToEdit.mode.id === 'pool201' ? 201 : Infinity;
+                         gameToEdit.mode.id === 'pool201' ? 201 : 
+                         gameToEdit.mode.id === 'points' ? gameToEdit.targetScore : Infinity;
         
         return {
           ...player,

@@ -13,11 +13,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
+import { useAds } from '../context/AdContext';
 import Button from '../components/Button';
 import ScoreInput from '../components/ScoreInput';
 
 export default function GameScreen({ navigation }) {
   const { currentGame, addRound, editRound, endGame, cancelGame, reentryPlayer } = useGame();
+  const { showInterstitial } = useAds();
   const [showScoreModal, setShowScoreModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [roundScores, setRoundScores] = useState({});
@@ -44,13 +46,15 @@ export default function GameScreen({ navigation }) {
   const activePlayers = currentGame.players.filter(p => !p.isEliminated);
   const sortedPlayers = [...currentGame.players].sort((a, b) => a.totalScore - b.totalScore);
 
-  // Get drop warning status for pool games
+  // Get drop warning status for pool and points games
   const getDropWarningStatus = (player) => {
     const mode = currentGame.mode;
-    if (mode.id !== 'pool101' && mode.id !== 'pool201') return null;
+    if (mode.id !== 'pool101' && mode.id !== 'pool201' && mode.id !== 'points') return null;
     if (player.isEliminated) return null;
     
-    const poolLimit = mode.id === 'pool101' ? 101 : 201;
+    const poolLimit = mode.id === 'pool101' ? 101 : 
+                       mode.id === 'pool201' ? 201 : 
+                       currentGame.targetScore;
     const dropPoints = currentGame.dropPoints?.drop || 20;
     const middleDropPoints = currentGame.dropPoints?.middleDrop || 40;
     
@@ -69,8 +73,10 @@ export default function GameScreen({ navigation }) {
   const checkGameEnd = (newScores) => {
     const mode = currentGame.mode;
     
-    if (mode.id === 'pool101' || mode.id === 'pool201') {
-      const poolLimit = mode.id === 'pool101' ? 101 : 201;
+    if (mode.id === 'pool101' || mode.id === 'pool201' || mode.id === 'points') {
+      const poolLimit = mode.id === 'pool101' ? 101 : 
+                         mode.id === 'pool201' ? 201 : 
+                         currentGame.targetScore;
       
       // Calculate who would still be active after this round
       const playersAfterRound = currentGame.players.map(p => {
@@ -97,21 +103,6 @@ export default function GameScreen({ navigation }) {
       }
     }
     
-    if (mode.id === 'points') {
-      const playersAfterRound = currentGame.players.map(p => ({
-        ...p,
-        totalScore: p.totalScore + (newScores[p.id] || 0),
-      }));
-      
-      const reachedTarget = playersAfterRound.find(
-        p => p.totalScore >= currentGame.targetScore
-      );
-      if (reachedTarget) {
-        // Lowest score wins
-        return playersAfterRound.sort((a, b) => a.totalScore - b.totalScore)[0];
-      }
-    }
-    
     // For deals: check if this will be the last round (current rounds + 1 new round)
     if (mode.id === 'deals' && (currentGame.rounds.length + 1) >= currentGame.targetScore) {
       const playersAfterRound = currentGame.players.map(p => ({
@@ -125,7 +116,7 @@ export default function GameScreen({ navigation }) {
     return null;
   };
 
-  const handleOpenScoreModal = (roundIndex = null) => {
+  const handleOpenScoreModal = async (roundIndex = null) => {
     const initialScores = {};
     if (roundIndex !== null && currentGame.rounds[roundIndex]) {
       // Editing existing round - pre-fill with existing scores
@@ -135,7 +126,12 @@ export default function GameScreen({ navigation }) {
       });
       setEditingRoundIndex(roundIndex);
     } else {
-      // New round
+      // New round - show interstitial before even rounds (2, 4, 6, etc.)
+      const nextRound = currentGame.rounds.length + 1;
+      if (nextRound >= 2 && nextRound % 2 === 0) {
+        console.log('Showing interstitial before round', nextRound);
+        await showInterstitial();
+      }
       activePlayers.forEach(p => {
         initialScores[p.id] = '';
       });
@@ -198,8 +194,10 @@ export default function GameScreen({ navigation }) {
             [
               {
                 text: 'End Game',
-                onPress: () => {
+                onPress: async () => {
                   endGame(winner);
+                  // Show interstitial ad before navigating
+                  await showInterstitial();
                   navigation.replace('Home');
                 },
               },
@@ -214,9 +212,11 @@ export default function GameScreen({ navigation }) {
     setShowEndModal(true);
   };
 
-  const handleEndAndSave = () => {
+  const handleEndAndSave = async () => {
     setShowEndModal(false);
     endGame(sortedPlayers[0]);
+    // Show interstitial ad before navigating
+    await showInterstitial();
     navigation.replace('Home');
   };
 
