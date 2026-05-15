@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -11,11 +11,13 @@ import {
   purchaseErrorListener,
   getAvailablePurchases,
 } from 'react-native-iap';
+import { InterstitialAd, AdEventType } from 'react-native-google-mobile-ads';
 import { 
   IAP_PRODUCTS, 
   STORAGE_KEYS, 
   DEBUG_FORCE_ADS_REMOVED, 
-  DEBUG_FORCE_SHOW_ADS 
+  DEBUG_FORCE_SHOW_ADS,
+  AD_UNIT_IDS 
 } from '../constants/ads';
 
 const AdContext = createContext();
@@ -187,6 +189,87 @@ export function AdProvider({ children }) {
     return products.find((p) => p.productId === IAP_PRODUCTS.REMOVE_ADS);
   }, [products]);
 
+  // Interstitial Ad management
+  const interstitialRef = useRef(null);
+  const [interstitialLoaded, setInterstitialLoaded] = useState(false);
+
+  // Load interstitial ad
+  const loadInterstitial = useCallback(() => {
+    if (effectiveAdsRemoved) return;
+
+    const interstitial = InterstitialAd.createForAdRequest(AD_UNIT_IDS.INTERSTITIAL, {
+      requestNonPersonalizedAdsOnly: true,
+    });
+
+    const unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
+      console.log('Interstitial ad loaded');
+      setInterstitialLoaded(true);
+    });
+
+    const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+      console.log('Interstitial ad closed');
+      setInterstitialLoaded(false);
+      // Reload for next time
+      loadInterstitial();
+    });
+
+    const unsubscribeError = interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
+      console.log('Interstitial ad error:', error);
+      setInterstitialLoaded(false);
+    });
+
+    interstitialRef.current = {
+      ad: interstitial,
+      unsubscribe: () => {
+        unsubscribeLoaded();
+        unsubscribeClosed();
+        unsubscribeError();
+      },
+    };
+
+    interstitial.load();
+  }, [effectiveAdsRemoved]);
+
+  // Show interstitial ad
+  const showInterstitial = useCallback(async () => {
+    console.log('showInterstitial called, adsRemoved:', effectiveAdsRemoved, 'loaded:', interstitialLoaded);
+    
+    if (effectiveAdsRemoved) {
+      console.log('Ads removed, skipping interstitial');
+      return false;
+    }
+
+    if (interstitialLoaded && interstitialRef.current?.ad) {
+      try {
+        console.log('Showing interstitial ad...');
+        await interstitialRef.current.ad.show();
+        return true;
+      } catch (error) {
+        console.log('Error showing interstitial:', error);
+        // Try to reload for next time
+        loadInterstitial();
+        return false;
+      }
+    } else {
+      console.log('Interstitial not loaded yet, attempting to load...');
+      loadInterstitial();
+      return false;
+    }
+  }, [effectiveAdsRemoved, interstitialLoaded, loadInterstitial]);
+
+  // Load interstitial on mount (if ads not removed)
+  useEffect(() => {
+    if (!effectiveAdsRemoved && !isLoading) {
+      loadInterstitial();
+    }
+
+    return () => {
+      if (interstitialRef.current?.unsubscribe) {
+        interstitialRef.current.unsubscribe();
+      }
+    };
+  }, [effectiveAdsRemoved, isLoading, loadInterstitial]);
+
   const value = {
     adsRemoved: effectiveAdsRemoved, // Uses debug flags
     isLoading,
@@ -195,6 +278,10 @@ export function AdProvider({ children }) {
     purchaseRemoveAds,
     restorePurchases,
     getRemoveAdsProduct,
+    // Interstitial ad functions
+    showInterstitial,
+    interstitialLoaded,
+    loadInterstitial,
     // Expose debug info for development
     _debug: __DEV__ ? { 
       DEBUG_FORCE_ADS_REMOVED, 

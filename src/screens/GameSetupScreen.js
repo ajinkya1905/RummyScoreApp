@@ -18,7 +18,7 @@ export default function GameSetupScreen({ navigation }) {
   const { players, gameModes, startGame, activeGames } = useGame();
   const [selectedMode, setSelectedMode] = useState(gameModes[0]);
   const [selectedPlayers, setSelectedPlayers] = useState([]);
-  const [targetScore, setTargetScore] = useState('500');
+  const [targetScore, setTargetScore] = useState('200');
   const [gameName, setGameName] = useState('');
   const [step, setStep] = useState(1);
   
@@ -52,8 +52,19 @@ export default function GameSetupScreen({ navigation }) {
       middleDrop: parseInt(middleDropPoints) || 40,
       fullPoints: parseInt(fullPoints) || 80,
     };
-    startGame(selectedMode, selectedPlayers, parseInt(targetScore) || 500, name, gameDropPoints);
+    const defaultScore = selectedMode.id === 'deals' ? 5 : 200;
+    startGame(selectedMode, selectedPlayers, parseInt(targetScore) || defaultScore, name, gameDropPoints);
     navigation.replace('Game');
+  };
+
+  const handleModeSelect = (mode) => {
+    setSelectedMode(mode);
+    // Reset target score to appropriate default when mode changes
+    if (mode.id === 'deals') {
+      setTargetScore('5');
+    } else if (mode.id === 'points') {
+      setTargetScore('200');
+    }
   };
 
   const renderStep1 = () => (
@@ -69,7 +80,7 @@ export default function GameSetupScreen({ navigation }) {
             key={mode.id}
             mode={mode}
             selected={selectedMode.id === mode.id}
-            onSelect={setSelectedMode}
+            onSelect={handleModeSelect}
           />
         ))}
         
@@ -83,7 +94,7 @@ export default function GameSetupScreen({ navigation }) {
               keyboardType="numeric"
               value={targetScore}
               onChangeText={setTargetScore}
-              placeholder={selectedMode.id === 'points' ? '500' : '5'}
+              placeholder={selectedMode.id === 'points' ? '200' : '5'}
             />
           </View>
         )}

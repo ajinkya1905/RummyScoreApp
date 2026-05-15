@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
@@ -31,7 +31,11 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.subtitle}>Track your game scores easily</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={[styles.contentContainer, !adsRemoved && styles.contentWithAd]}
+        showsVerticalScrollIndicator={false}
+      >
         {activeGames.length > 0 && (
           <TouchableOpacity
             style={styles.resumeCard}
@@ -62,15 +66,15 @@ export default function HomeScreen({ navigation }) {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{players.length}</Text>
-            <Text style={styles.statLabel}>Players</Text>
+            <Text style={styles.statLabel} numberOfLines={1}>Players</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{activeGames.length}</Text>
-            <Text style={styles.statLabel}>Active</Text>
+            <Text style={styles.statLabel} numberOfLines={1}>Active</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{games.length}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statLabel} numberOfLines={1}>Done</Text>
           </View>
         </View>
 
@@ -104,7 +108,7 @@ export default function HomeScreen({ navigation }) {
             {adsRemoved ? '⚙️ Settings' : '✨ Go Ad-Free'}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       {/* Banner Ad at bottom, outside scrollable content */}
       <View style={styles.footer}>
@@ -151,7 +155,13 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  contentWithAd: {
+    paddingBottom: 80, // Space for banner ad
   },
   resumeCard: {
     flexDirection: 'row',
