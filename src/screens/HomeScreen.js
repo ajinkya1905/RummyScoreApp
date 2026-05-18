@@ -9,7 +9,17 @@ import BannerAd from '../components/BannerAd';
 
 export default function HomeScreen({ navigation }) {
   const { activeGames, players, games, selectGame } = useGame();
-  const { adsRemoved } = useAds();
+  const { adsRemoved, showInterstitial } = useAds();
+
+  const handleViewHistory = async () => {
+    await showInterstitial();
+    navigation.navigate('History');
+  };
+
+  const handleManagePlayers = async () => {
+    await showInterstitial();
+    navigation.navigate('Players');
+  };
 
   const handleResumeGame = (gameId) => {
     selectGame(gameId);
@@ -87,13 +97,13 @@ export default function HomeScreen({ navigation }) {
           <Button
             title="Manage Players"
             variant="secondary"
-            onPress={() => navigation.navigate('Players')}
+            onPress={handleManagePlayers}
             style={styles.secondaryButton}
           />
           <Button
             title="View Game History"
             variant="secondary"
-            onPress={() => navigation.navigate('History')}
+            onPress={handleViewHistory}
             style={styles.secondaryButton}
           />
         </View>
