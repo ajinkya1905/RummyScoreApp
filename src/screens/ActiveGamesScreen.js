@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
 import Button from '../components/Button';
+import BannerAd from '../components/BannerAd';
 
 export default function ActiveGamesScreen({ navigation }) {
   const { activeGames, selectGame } = useGame();
@@ -108,6 +109,7 @@ export default function ActiveGamesScreen({ navigation }) {
             showsVerticalScrollIndicator={false}
           />
           <View style={styles.footer}>
+            <BannerAd style={styles.bannerAd} />
             <Button
               title="+ Start Another Game"
               onPress={() => navigation.navigate('GameSetup')}
@@ -254,5 +256,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  bannerAd: {
+    marginBottom: spacing.md,
   },
 });

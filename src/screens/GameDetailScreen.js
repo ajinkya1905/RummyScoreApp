@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
 import PlayerCard from '../components/PlayerCard';
+import BannerAd from '../components/BannerAd';
 
 export default function GameDetailScreen({ route, navigation }) {
   const { games } = useGame();
@@ -117,11 +118,15 @@ export default function GameDetailScreen({ route, navigation }) {
           </View>
         </View>
       </ScrollView>
+      <BannerAd style={styles.bannerAd} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  bannerAd: {
+    marginTop: spacing.sm,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

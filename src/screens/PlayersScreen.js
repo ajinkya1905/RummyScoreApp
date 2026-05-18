@@ -12,13 +12,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
+import { useAds } from '../context/AdContext';
 import Button from '../components/Button';
 import PlayerCard from '../components/PlayerCard';
+import BannerAd from '../components/BannerAd';
 
 const AVATARS = ['🎴', '🃏', '👤', '🎯', '⭐', '🎲', '🏆', '💎', '🎪', '🦊'];
 
 export default function PlayersScreen({ navigation }) {
   const { players, addPlayer, removePlayer } = useGame();
+  const { adsRemoved } = useAds();
   const [playerName, setPlayerName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
 
@@ -109,12 +112,13 @@ export default function PlayersScreen({ navigation }) {
                   onRemove={handleRemovePlayer}
                 />
               )}
-              contentContainerStyle={styles.list}
+              contentContainerStyle={adsRemoved ? styles.list : styles.listWithAd}
               showsVerticalScrollIndicator={false}
             />
           )}
         </View>
       </KeyboardAvoidingView>
+      <BannerAd style={styles.bannerAd} />
     </SafeAreaView>
   );
 }
@@ -184,6 +188,15 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingBottom: spacing.lg,
+  },
+  listWithAd: {
+    paddingBottom: spacing.lg + 60,
+  },
+  bannerAd: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   emptyState: {
     flex: 1,
