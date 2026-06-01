@@ -1,19 +1,5 @@
 import { Platform } from 'react-native';
 
-// ============================================================
-// DEBUG FLAGS - Toggle these for easy local testing
-// ============================================================
-
-// Set to true to hide all ads (simulates "Remove Ads" purchase)
-// Set to false to show ads normally
-export const DEBUG_FORCE_ADS_REMOVED = false;
-
-// Set to true to always show ads (even if user purchased remove ads)
-// Useful for testing ad placement/styling
-export const DEBUG_FORCE_SHOW_ADS = false;
-
-// ============================================================
-
 // AdMob Test Ad Unit IDs (Use these for development)
 // Replace with your real ad unit IDs before publishing
 const TEST_BANNER_ANDROID = 'ca-app-pub-3940256099942544/6300978111';

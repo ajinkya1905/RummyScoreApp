@@ -110,7 +110,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={styles.aboutCard}>
             <View style={styles.aboutItem}>
               <Text style={styles.aboutLabel}>Version</Text>
-              <Text style={styles.aboutValue}>1.0.0</Text>
+              <Text style={styles.aboutValue}>1.0.11</Text>
             </View>
             
             <TouchableOpacity

@@ -4,19 +4,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   initConnection,
   endConnection,
-  getProducts,
+  fetchProducts,
   requestPurchase,
   finishTransaction,
   purchaseUpdatedListener,
   purchaseErrorListener,
   getAvailablePurchases,
+  flushFailedPurchasesCachedAsPendingAndroid,
 } from 'react-native-iap';
 import { InterstitialAd, AdEventType } from 'react-native-google-mobile-ads';
 import { 
   IAP_PRODUCTS, 
   STORAGE_KEYS, 
-  DEBUG_FORCE_ADS_REMOVED, 
-  DEBUG_FORCE_SHOW_ADS,
   AD_UNIT_IDS 
 } from '../constants/ads';
 
@@ -29,16 +28,10 @@ const productSkus = Platform.select({
 });
 
 export function AdProvider({ children }) {
-  // Apply debug flag for initial state
-  const [adsRemoved, setAdsRemoved] = useState(DEBUG_FORCE_ADS_REMOVED);
+  const [adsRemoved, setAdsRemoved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [isPurchasing, setIsPurchasing] = useState(false);
-
-  // Compute effective ads removed state (respects debug flags)
-  const effectiveAdsRemoved = DEBUG_FORCE_SHOW_ADS 
-    ? false 
-    : (DEBUG_FORCE_ADS_REMOVED || adsRemoved);
 
   // Initialize IAP connection and check for existing purchases
   useEffect(() => {
@@ -47,12 +40,6 @@ export function AdProvider({ children }) {
 
     const initializeIAP = async () => {
       try {
-        // Skip IAP init if debug flag forces ads removed
-        if (DEBUG_FORCE_ADS_REMOVED) {
-          setIsLoading(false);
-          return;
-        }
-
         // Check local storage first
         const storedValue = await AsyncStorage.getItem(STORAGE_KEYS.ADS_REMOVED);
         if (storedValue === 'true') {
@@ -62,14 +49,30 @@ export function AdProvider({ children }) {
         // Initialize IAP connection
         await initConnection();
 
-        // Get available products
-        const availableProducts = await getProducts({ skus: productSkus });
-        setProducts(availableProducts);
+        // Clear any pending purchases on Android
+        if (Platform.OS === 'android') {
+          try {
+            await flushFailedPurchasesCachedAsPendingAndroid();
+          } catch (flushError) {
+            // Non-critical error, ignore
+          }
+        }
+
+        // Get available products with retry
+        let availableProducts = await fetchProducts({ skus: productSkus });
+        
+        // Retry once if no products found (Google Play can be slow)
+        if (!availableProducts || availableProducts.length === 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          availableProducts = await fetchProducts({ skus: productSkus });
+        }
+        
+        setProducts(availableProducts || []);
 
         // Check for existing purchases (restore purchases)
         const purchases = await getAvailablePurchases();
         const hasRemoveAdsPurchase = purchases.some(
-          (purchase) => purchase.productId === IAP_PRODUCTS.REMOVE_ADS
+          (purchase) => (purchase.productId || purchase.id) === IAP_PRODUCTS.REMOVE_ADS
         );
 
         if (hasRemoveAdsPurchase) {
@@ -77,7 +80,6 @@ export function AdProvider({ children }) {
           await AsyncStorage.setItem(STORAGE_KEYS.ADS_REMOVED, 'true');
         }
       } catch (error) {
-        console.log('IAP initialization error:', error);
         // Still allow app to work without IAP
       } finally {
         setIsLoading(false);
@@ -86,7 +88,7 @@ export function AdProvider({ children }) {
 
     // Set up purchase listeners
     purchaseUpdateSubscription = purchaseUpdatedListener(async (purchase) => {
-      if (purchase.productId === IAP_PRODUCTS.REMOVE_ADS) {
+      if ((purchase.productId || purchase.id) === IAP_PRODUCTS.REMOVE_ADS) {
         try {
           await finishTransaction({ purchase, isConsumable: false });
           setAdsRemoved(true);
@@ -97,14 +99,13 @@ export function AdProvider({ children }) {
             [{ text: 'OK' }]
           );
         } catch (error) {
-          console.log('Error finishing transaction:', error);
+          // Error finishing transaction
         }
       }
       setIsPurchasing(false);
     });
 
     purchaseErrorSubscription = purchaseErrorListener((error) => {
-      console.log('Purchase error:', error);
       if (error.code !== 'E_USER_CANCELLED') {
         Alert.alert(
           'Purchase Error',
@@ -132,21 +133,43 @@ export function AdProvider({ children }) {
   const purchaseRemoveAds = useCallback(async () => {
     if (isPurchasing) return;
 
+    // Check if product is available
+    const product = products.find((p) => (p.id || p.productId) === IAP_PRODUCTS.REMOVE_ADS);
+    if (!product) {
+      Alert.alert(
+        'Product Unavailable',
+        'The remove ads product is not available. Please try again later.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setIsPurchasing(true);
     try {
-      await requestPurchase({ sku: IAP_PRODUCTS.REMOVE_ADS });
+      const productId = product.id || product.productId;
+      
+      await requestPurchase({
+        type: 'in-app',
+        request: {
+          google: {
+            skus: [productId],
+          },
+          apple: {
+            sku: productId,
+          },
+        },
+      });
     } catch (error) {
-      console.log('Purchase request error:', error);
       setIsPurchasing(false);
       if (error.code !== 'E_USER_CANCELLED') {
         Alert.alert(
           'Purchase Error',
-          'Unable to process purchase. Please try again.',
+          `Error: ${error.message || JSON.stringify(error)}`,
           [{ text: 'OK' }]
         );
       }
     }
-  }, [isPurchasing]);
+  }, [isPurchasing, products]);
 
   // Restore purchases
   const restorePurchases = useCallback(async () => {
@@ -154,7 +177,7 @@ export function AdProvider({ children }) {
     try {
       const purchases = await getAvailablePurchases();
       const hasRemoveAdsPurchase = purchases.some(
-        (purchase) => purchase.productId === IAP_PRODUCTS.REMOVE_ADS
+        (purchase) => (purchase.productId || purchase.id) === IAP_PRODUCTS.REMOVE_ADS
       );
 
       if (hasRemoveAdsPurchase) {
@@ -173,7 +196,6 @@ export function AdProvider({ children }) {
         );
       }
     } catch (error) {
-      console.log('Restore error:', error);
       Alert.alert(
         'Restore Error',
         'Unable to restore purchases. Please try again.',
@@ -186,7 +208,7 @@ export function AdProvider({ children }) {
 
   // Get remove ads product details
   const getRemoveAdsProduct = useCallback(() => {
-    return products.find((p) => p.productId === IAP_PRODUCTS.REMOVE_ADS);
+    return products.find((p) => (p.id || p.productId) === IAP_PRODUCTS.REMOVE_ADS);
   }, [products]);
 
   // Interstitial Ad management
@@ -195,26 +217,23 @@ export function AdProvider({ children }) {
 
   // Load interstitial ad
   const loadInterstitial = useCallback(() => {
-    if (effectiveAdsRemoved) return;
+    if (adsRemoved) return;
 
     const interstitial = InterstitialAd.createForAdRequest(AD_UNIT_IDS.INTERSTITIAL, {
       requestNonPersonalizedAdsOnly: true,
     });
 
     const unsubscribeLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      console.log('Interstitial ad loaded');
       setInterstitialLoaded(true);
     });
 
     const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-      console.log('Interstitial ad closed');
       setInterstitialLoaded(false);
       // Reload for next time
       loadInterstitial();
     });
 
-    const unsubscribeError = interstitial.addAdEventListener(AdEventType.ERROR, (error) => {
-      console.log('Interstitial ad error:', error);
+    const unsubscribeError = interstitial.addAdEventListener(AdEventType.ERROR, () => {
       setInterstitialLoaded(false);
     });
 
@@ -228,38 +247,32 @@ export function AdProvider({ children }) {
     };
 
     interstitial.load();
-  }, [effectiveAdsRemoved]);
+  }, [adsRemoved]);
 
   // Show interstitial ad
   const showInterstitial = useCallback(async () => {
-    console.log('showInterstitial called, adsRemoved:', effectiveAdsRemoved, 'loaded:', interstitialLoaded);
-    
-    if (effectiveAdsRemoved) {
-      console.log('Ads removed, skipping interstitial');
+    if (adsRemoved) {
       return false;
     }
 
     if (interstitialLoaded && interstitialRef.current?.ad) {
       try {
-        console.log('Showing interstitial ad...');
         await interstitialRef.current.ad.show();
         return true;
       } catch (error) {
-        console.log('Error showing interstitial:', error);
         // Try to reload for next time
         loadInterstitial();
         return false;
       }
     } else {
-      console.log('Interstitial not loaded yet, attempting to load...');
       loadInterstitial();
       return false;
     }
-  }, [effectiveAdsRemoved, interstitialLoaded, loadInterstitial]);
+  }, [adsRemoved, interstitialLoaded, loadInterstitial]);
 
   // Load interstitial on mount (if ads not removed)
   useEffect(() => {
-    if (!effectiveAdsRemoved && !isLoading) {
+    if (!adsRemoved && !isLoading) {
       loadInterstitial();
     }
 
@@ -268,26 +281,19 @@ export function AdProvider({ children }) {
         interstitialRef.current.unsubscribe();
       }
     };
-  }, [effectiveAdsRemoved, isLoading, loadInterstitial]);
+  }, [adsRemoved, isLoading, loadInterstitial]);
 
   const value = {
-    adsRemoved: effectiveAdsRemoved, // Uses debug flags
+    adsRemoved,
     isLoading,
     isPurchasing,
     products,
     purchaseRemoveAds,
     restorePurchases,
     getRemoveAdsProduct,
-    // Interstitial ad functions
     showInterstitial,
     interstitialLoaded,
     loadInterstitial,
-    // Expose debug info for development
-    _debug: __DEV__ ? { 
-      DEBUG_FORCE_ADS_REMOVED, 
-      DEBUG_FORCE_SHOW_ADS,
-      actualAdsRemoved: adsRemoved 
-    } : null,
   };
 
   return <AdContext.Provider value={value}>{children}</AdContext.Provider>;

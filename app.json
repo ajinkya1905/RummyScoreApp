@@ -2,7 +2,7 @@
   "expo": {
     "name": "Rummy Score",
     "slug": "RummyScoreApp",
-    "version": "1.0.5",
+    "version": "1.0.11",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
