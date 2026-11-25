@@ -21,6 +21,8 @@ import {
 
 const AdContext = createContext();
 
+const INTERSTITIAL_MIN_INTERVAL_MS = 3 * 60 * 1000;
+
 // Product SKUs for IAP
 const productSkus = Platform.select({
   android: [IAP_PRODUCTS.REMOVE_ADS],
@@ -78,6 +80,10 @@ export function AdProvider({ children }) {
         if (hasRemoveAdsPurchase) {
           setAdsRemoved(true);
           await AsyncStorage.setItem(STORAGE_KEYS.ADS_REMOVED, 'true');
+        } else {
+          // Store is authoritative: revoke cached flag after refund / test-purchase removal
+          setAdsRemoved(false);
+          await AsyncStorage.removeItem(STORAGE_KEYS.ADS_REMOVED);
         }
       } catch (error) {
         // Still allow app to work without IAP
@@ -213,6 +219,7 @@ export function AdProvider({ children }) {
 
   // Interstitial Ad management
   const interstitialRef = useRef(null);
+  const lastInterstitialAtRef = useRef(0);
   const [interstitialLoaded, setInterstitialLoaded] = useState(false);
 
   // Load interstitial ad
@@ -255,9 +262,14 @@ export function AdProvider({ children }) {
       return false;
     }
 
+    if (Date.now() - lastInterstitialAtRef.current < INTERSTITIAL_MIN_INTERVAL_MS) {
+      return false;
+    }
+
     if (interstitialLoaded && interstitialRef.current?.ad) {
       try {
         await interstitialRef.current.ad.show();
+        lastInterstitialAtRef.current = Date.now();
         return true;
       } catch (error) {
         // Try to reload for next time

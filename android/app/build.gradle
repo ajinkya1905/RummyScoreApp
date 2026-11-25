@@ -92,8 +92,8 @@ android {
         applicationId 'com.ajinkya.rummyscore'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 16
-        versionName "1.0.15"
+        versionCode 18
+        versionName "1.0.17"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
@@ -105,10 +105,11 @@ android {
             keyPassword 'android'
         }
         release {
+            // Passwords live in %USERPROFILE%\.gradle\gradle.properties (not committed)
             storeFile file('rummy-release-key.keystore')
-            storePassword 'REMOVED_SECRET'
+            storePassword findProperty('RUMMY_UPLOAD_STORE_PASSWORD')
             keyAlias 'rummy-key'
-            keyPassword 'REMOVED_SECRET'
+            keyPassword findProperty('RUMMY_UPLOAD_KEY_PASSWORD')
         }
     }
     buildTypes {

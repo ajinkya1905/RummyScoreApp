@@ -118,7 +118,7 @@ export default function PlayersScreen({ navigation }) {
           )}
         </View>
       </KeyboardAvoidingView>
-      <BannerAd style={styles.bannerAd} />
+      {players.length > 0 && <BannerAd style={styles.bannerAd} />}
     </SafeAreaView>
   );
 }

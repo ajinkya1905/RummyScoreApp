@@ -97,7 +97,7 @@ export default function HistoryScreen({ navigation }) {
           ListFooterComponent={<View style={adsRemoved ? styles.listFooter : styles.listFooterWithAd} />}
         />
       )}
-      <BannerAd style={styles.bannerAd} />
+      {games.length > 0 && <BannerAd style={styles.bannerAd} />}
     </SafeAreaView>
   );
 }

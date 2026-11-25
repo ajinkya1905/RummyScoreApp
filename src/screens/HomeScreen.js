@@ -9,15 +9,13 @@ import BannerAd from '../components/BannerAd';
 
 export default function HomeScreen({ navigation }) {
   const { activeGames, players, games, selectGame } = useGame();
-  const { adsRemoved, showInterstitial } = useAds();
+  const { adsRemoved } = useAds();
 
-  const handleViewHistory = async () => {
-    await showInterstitial();
+  const handleViewHistory = () => {
     navigation.navigate('History');
   };
 
-  const handleManagePlayers = async () => {
-    await showInterstitial();
+  const handleManagePlayers = () => {
     navigation.navigate('Players');
   };
 
