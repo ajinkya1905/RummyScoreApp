@@ -1,0 +1,5 @@
+1. Implement settlement action after each game (who ows whom how many points) with minimum transactions for points rummy.
+   Status: DONE (2026-11-25, not yet released) - each round, losers pay the round winner (0 pts) their round points; netted per player and
+   reduced to the exact minimum number of transfers. Shown as "Settlement" (with optional value per point) on Game Details;
+   ending a Points Rummy game now opens Game Details. Files: src/utils/settlement.js, src/components/SettlementCard.js.
+2. 
