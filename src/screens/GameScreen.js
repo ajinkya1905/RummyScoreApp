@@ -195,10 +195,16 @@ export default function GameScreen({ navigation }) {
               {
                 text: 'End Game',
                 onPress: async () => {
+                  const gameId = currentGame.id;
+                  const isPoints = currentGame.mode.id === 'points';
                   endGame(winner);
                   // Show interstitial ad before navigating
                   await showInterstitial();
-                  navigation.replace('Home');
+                  if (isPoints) {
+                    navigation.replace('GameDetail', { gameId });
+                  } else {
+                    navigation.replace('Home');
+                  }
                 },
               },
             ]
@@ -214,10 +220,16 @@ export default function GameScreen({ navigation }) {
 
   const handleEndAndSave = async () => {
     setShowEndModal(false);
+    const gameId = currentGame.id;
+    const isPoints = currentGame.mode.id === 'points';
     endGame(sortedPlayers[0]);
     // Show interstitial ad before navigating
     await showInterstitial();
-    navigation.replace('Home');
+    if (isPoints) {
+      navigation.replace('GameDetail', { gameId });
+    } else {
+      navigation.replace('Home');
+    }
   };
 
   const handleCancelGame = () => {

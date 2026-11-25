@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, borderRadius } from '../styles/theme';
 import { useGame } from '../context/GameContext';
 import PlayerCard from '../components/PlayerCard';
+import SettlementCard from '../components/SettlementCard';
 import BannerAd from '../components/BannerAd';
 
 export default function GameDetailScreen({ route, navigation }) {
@@ -68,6 +69,13 @@ export default function GameDetailScreen({ route, navigation }) {
             showScore
           />
         ))}
+
+        {game.mode.id === 'points' && (
+          <>
+            <Text style={styles.sectionTitle}>Settlement</Text>
+            <SettlementCard game={game} />
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Score History</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
