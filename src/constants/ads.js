@@ -9,9 +9,9 @@ const TEST_INTERSTITIAL_IOS = 'ca-app-pub-3940256099942544/4411468910';
 
 // Production Ad Unit IDs
 // Get these from your AdMob dashboard: https://admob.google.com
-const PROD_BANNER_ANDROID = 'ca-app-pub-9985947780680080/7693217408';
+const PROD_BANNER_ANDROID = 'ca-app-pub-9985947780680080/8675685379';
 const PROD_BANNER_IOS = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
-const PROD_INTERSTITIAL_ANDROID = 'ca-app-pub-9985947780680080/5537738068';
+const PROD_INTERSTITIAL_ANDROID = 'ca-app-pub-9985947780680080/8922971070';
 const PROD_INTERSTITIAL_IOS = 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX';
 
 // Set to false for production release

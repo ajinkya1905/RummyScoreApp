@@ -2,7 +2,7 @@
   "expo": {
     "name": "Rummy Score",
     "slug": "RummyScoreApp",
-    "version": "1.0.17",
+    "version": "1.0.18",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.ajinkya.rummyscore",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -32,7 +32,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-9985947780680080~1462850977",
+          "androidAppId": "ca-app-pub-9985947780680080~8182102024",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ],
